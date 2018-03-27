@@ -1,8 +1,16 @@
 print('Hello, chap3, sec2.')
 
-text = 'Some years ago - never mind how long precisely - having little or no money in my purse, and nothing particular to interest me on shore, I thought I would sail about a little and see the watery part of the world.'
+from . import sec1
 
-x = '3.2'
 
-dangerous = [1, 2, 3]
-safe = 'watch out'
+def print_dict_as_table(d):
+    '''Print dictionary as table.'''
+    key_col_width = 20
+    print('key'.rjust(key_col_width), '|', 'value')
+    print('-' * key_col_width, '|', '--------')
+    for key, val in d.items():
+        print(key.rjust(key_col_width), '|', val)
+
+def print_pub():
+    '''Print publication from sec2 as table.'''
+    print_dict_as_table(sec1.pub)

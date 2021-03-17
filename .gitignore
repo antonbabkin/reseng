@@ -2,3 +2,6 @@
 *.pyc
 data/
 tmp/
+
+# unignore when ready to prepare nbdev docs
+docs

@@ -2,9 +2,14 @@
 
 __all__ = ["index", "modules", "custom_doc_links", "git_url"]
 
-index = {"get_config": "config.ipynb"}
+index = {"get_config": "config.ipynb",
+         "Paths": "config.ipynb",
+         "p": "paths.ipynb",
+         "Config": "config.ipynb",
+         "config": "config.ipynb"}
 
-modules = ["config.py"]
+modules = ["config.py",
+           "paths.py"]
 
 doc_url = "https://antonbabkin.github.io/reseng/"
 

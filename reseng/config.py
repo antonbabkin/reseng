@@ -22,7 +22,8 @@ class Paths:
             self._path_names.append(name)
 
     def __str__(self):
-        return '\n'.join(f'{n}: {getattr(self, n)}' for n in self._path_names)
+        name_col_width = max(map(len, self._path_names))
+        return '\n'.join(f'{n:>{name_col_width}}: {getattr(self, n)}' for n in self._path_names)
 
     @staticmethod
     def locate_root_path():

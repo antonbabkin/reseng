@@ -6,10 +6,12 @@ index = {"get_config": "config.ipynb",
          "Paths": "config.ipynb",
          "p": "paths.ipynb",
          "Config": "config.ipynb",
-         "config": "config.ipynb"}
+         "config": "config.ipynb",
+         "simplecache": "caching.ipynb"}
 
 modules = ["config.py",
-           "paths.py"]
+           "paths.py",
+           "caching.py"]
 
 doc_url = "https://antonbabkin.github.io/reseng/"
 

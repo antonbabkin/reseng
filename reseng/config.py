@@ -28,12 +28,14 @@ class Paths:
     @staticmethod
     def locate_root_path():
         """Return project root path identified by presence of ".git" directory."""
-        if hasattr(sys, 'ps1'): # interactive mode
+        # call stack: 0=this function, 1=__init__(), 2=caller
+        caller = inspect.stack()[2].filename
+        if any(x in caller for x in ['<ipython-input', '/xpython_', '<stdin>']):
+            # class initialized from interactive shell or notebook
             p0 = '.'
         else:
-            # call stack: 0=this function, 1=__init__(), 2=caller
-            caller = inspect.stack()[2]
-            p0 = caller.filename
+            # class initialized from a Python module
+            p0 = caller
         p = p0 = pathlib.Path(p0).resolve()
         while p != p.parent:
             if (p/'.git').exists():

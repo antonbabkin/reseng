@@ -6,20 +6,28 @@ __all__ = ['simplecache']
 #export
 import pathlib
 import pickle
-
-from .config import Paths
+import functools
+from typing import Union
 
 # Cell
-def simplecache(path):
+def simplecache(path: Union[str, pathlib.Path]):
+    """Pickle function's returned value. Function returns pickled value if it exists.
+
+    If `path` is str, may use "{}" placeholders to be filled from function arguments.
+    Placeholders must be consistent with function call arguments ({} for args, {...} for kwargs).
+    """
     def wrapper(func):
+        @functools.wraps(func)
         def wrapped(*args, **kwargs):
-            p = pathlib.Path(path)
+            p = path
+            if isinstance(p, str):
+                p = pathlib.Path(p.format(*args, **kwargs))
             if p.exists():
-                print(f'Reading {func.__name__}() cached result from "{path}".')
+                print(f'Reading {func.__name__}() cached result from "{p}".')
                 return pickle.load(p.open('rb'))
             else:
                 res = func(*args, **kwargs)
-                print(f'Writing {func.__name__}() result to cache at "{path}".')
+                print(f'Writing {func.__name__}() result to cache at "{p}".')
                 pickle.dump(res, p.open('wb'), protocol=5)
                 return res
         return wrapped

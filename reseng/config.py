@@ -30,7 +30,7 @@ class Paths:
         """Return project root path identified by presence of ".git" directory."""
         # call stack: 0=this function, 1=__init__(), 2=caller
         caller = inspect.stack()[2].filename
-        if any(x in caller for x in ['<ipython-input', '/xpython_', '<stdin>']):
+        if any(x in caller for x in ['<ipython-input', '/xpython_', '/ipykernel_', '<stdin>']):
             # class initialized from interactive shell or notebook
             p0 = '.'
         else:

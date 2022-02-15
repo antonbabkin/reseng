@@ -12,17 +12,15 @@ kernelspec:
   name: python3
 ---
 
-# User interface
+# Control panel
+
+A single place to control various high level tasks in the project.
 
 +++
 
-## Initialization
+## Symbolic links
 
-Run this section to initialize your local repository after cloning. It is safe to run multiple times.
-
-+++
-
-### Symbolic links
+Import of project's Python package `reseng` from notebooks requires the package folder to be on import path. The cell below achieves that by creating a symbolic link to package folder from the notebooks folder. It could be much easier to commit symlinks to the repository, but such links do not easily work on Windows.
 
 ```{code-cell} ipython3
 import os
@@ -43,16 +41,4 @@ for submod in []:
     
 # test imports
 import reseng
-```
-
-### Git configuration
-
-```{code-cell} ipython3
-%cd ..
-!nbdime config-git --enable
-!git config filter.jupyternotebook.clean "jupyter nbconvert --stdin --stdout --to=notebook --ClearOutputPreprocessor.enabled=True --ClearMetadataPreprocessor.enabled=True --log-level=ERROR"
-!git config filter.jupyternotebook.smudge cat
-!git config filter.jupyternotebook.required true
-!git config diff.jupyternotebook.command "git-nbdiffdriver diff --ignore-outputs --ignore-metadata --ignore-details"
-%cd -
 ```

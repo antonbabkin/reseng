@@ -46,10 +46,10 @@ where `(?ms)` are regex flags: re.M (multi-line), re.S (dot matches all)
 Example below shows how to use `nbconvert` API to export notebook to a script and only keep cells that start with `#nbd module`.
 
 ```{code-cell} ipython3
-# preprocessors
+import nbconvert
 prep_select_module_cells = nbconvert.preprocessors.RegexRemovePreprocessor(patterns=['(?!#nbd module)'])
 exporter = nbconvert.exporters.PythonExporter(preprocessors=[prep_select_module_cells], exclude_input_prompt=True)
-script, _ = exporter.from_filename('nbd_test.ipynb')
+script, _ = exporter.from_filename('notebook.ipynb')
 ```
 
 ## Cell flagging
@@ -59,12 +59,6 @@ In order to selective export cells, they need to be flagged.
 One option is to use special text in cells. `# comments` are natural for code cells. For Markdown, we can use `<!--- HTML comments -->` or Markdown named links: `[nbd]: # "flag1 flag2"`. See this [SO question](https://stackoverflow.com/q/4823468) for different Markdown comment alternatives.
 
 Another option is to use cell tags.
-
-+++ {"tags": []}
-
-## Nbd class
-
-`Nbd` class adds extra functionality on top of `nbconvert`.
 
 ```{code-cell} ipython3
 :tags: [nbd-module]
@@ -76,6 +70,22 @@ import inspect
 
 import nbconvert
 import nbformat
+```
+
++++ {"tags": []}
+
+## Nbd class
+
+`Nbd` class adds extra functionality on top of `nbconvert`.
+
+The first thing to do is to identify project root path. This is done by going up until directory contains both `nbs` and package (`reseng` in this case) folders. The main challenge is to choose starting path from where to go up.
+
+We can't use `__file__`, because it will always point to location of the `nbd.py` file, even if it is imported from somewhere outside of current project. This will limit use of `nbd` as a library.
+
+Instead, I inspect call stack to identify what called the `Nbd` class initialization. If the caller is an interactive interpreter, identfied by common interpreter names, then search up from current working directory. Otherwise the caller must be some other file, in which case, file parent is used as a starting point.
+
+```{code-cell} ipython3
+:tags: [nbd-module]
 
 class Nbd:
     nbs_dir_name = 'nbs'
@@ -237,7 +247,7 @@ nbd = Nbd('reseng')
 nbd.nb2mod('nbd.ipynb')
 ```
 
-Restart kernel, build again, but now using the module itself.
+To test, restart kernel, build again, but now using the module itself.
 
 ```{code-cell} ipython3
 :tags: []

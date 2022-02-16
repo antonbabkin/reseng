@@ -14,30 +14,61 @@ kernelspec:
 
 +++ {"tags": []}
 
-# NBD: development in the notebook
+# NBD
+**Development in the notebook**
 
-+++ {"tags": []}
-
-# Directory structure
-
-**Requirements**  
-Package, subpackages and modules should be importable both from a notebook and from a module.
-
-**Option 1**  
-`cd` to project root in the notebook before doing imports. Simple `%cd ..` will work (can be `%cd ../..` for subpackage notebooks), but can not be executed repeatedly. Or a loop that goes `cd ..` until at root.
-
-**Option 2**  
-Create symlink to package dir at the same dir where the notebook is. Needs to be repeated for each subpackage.
-
-**Option 3**  
-`pip install -e .`. Requires package to be pip-installable properly.
+This approach was greatly inspired by the [nbdev](https://github.com/fastai/nbdev) project.
 
 +++
 
-It would be helpful to be able to identify current notebook name, but this is not easy to do. There is a long standing open [issue](https://github.com/jupyter/notebook/issues/1000) on GH, and a default way to do this may be added in notebook v7.
+**Directory structure requirements**: Package, subpackages and modules should be importable both from a notebook and from a module.  
+Options:
+- `cd` to project root in the notebook before doing imports. Simple `%cd ..` will work (can be `%cd ../..` for subpackage notebooks), but can not be executed repeatedly. Or a loop that goes `cd ..` until at root.
+- Create symlink to package dir at the same dir where the notebook is. Needs to be repeated for each subpackage. **This approach is taken here.**
+- `pip install -e .`. Requires package to be pip-installable properly.
+
+It would be helpful to be able to identify current notebook file name, but this is not easy to do. There is a long standing open [issue](https://github.com/jupyter/notebook/issues/1000) on GH, and a default way to do this may be added in notebook v7.
+
++++ {"tags": []}
+
+## nbconvert
+
+At the core of the approach is `nbconvert`, and one could use just that.
+
+`nbconvert` can be configured to filter out unwanted cells with `RegexRemovePreprocessor` or `TagRemovePreprocessor`.
+
+If we want to match anywhere in the cell we need:
+
+`patterns=['(?ms).*ABRA']`
+
+where `(?ms)` are regex flags: re.M (multi-line), re.S (dot matches all)
+
+Example below shows how to use `nbconvert` API to export notebook to a script and only keep cells that start with `#nbd module`.
 
 ```{code-cell} ipython3
-#nbd module
+# preprocessors
+prep_select_module_cells = nbconvert.preprocessors.RegexRemovePreprocessor(patterns=['(?!#nbd module)'])
+exporter = nbconvert.exporters.PythonExporter(preprocessors=[prep_select_module_cells], exclude_input_prompt=True)
+script, _ = exporter.from_filename('nbd_test.ipynb')
+```
+
+## Cell flagging
+
+In order to selective export cells, they need to be flagged.
+
+One option is to use special text in cells. `# comments` are natural for code cells. For Markdown, we can use `<!--- HTML comments -->` or Markdown named links: `[nbd]: # "flag1 flag2"`. See this [SO question](https://stackoverflow.com/q/4823468) for different Markdown comment alternatives.
+
+Another option is to use cell tags.
+
++++ {"tags": []}
+
+## Nbd class
+
+`Nbd` class adds extra functionality on top of `nbconvert`.
+
+```{code-cell} ipython3
+:tags: [nbd-module]
+
 import os
 import re
 from pathlib import Path
@@ -47,28 +78,30 @@ import nbconvert
 import nbformat
 
 class Nbd:
-    def __init__(self, pkg_name, nbs_dir='nbs'):
+    nbs_dir_name = 'nbs'
+    
+    def __init__(self, pkg_name):
         self.pkg_name = pkg_name
-        self.nbs_dir = nbs_dir
         self.root = self._locate_root_path()
-        p = self.pkg_path = self.root/pkg_name
-        assert p.exists() and p.is_dir()
-        p = self.nbs_path = self.root/nbs_dir
-        assert p.exists() and p.is_dir()
+        self.pkg_path = self.root / pkg_name
+        self.nbs_path = self.root / self.nbs_dir_name
         self._make_symlinks()
         
     def _locate_root_path(self):
         # call stack: 0=this function, 1=__init__(), 2=caller
         caller = inspect.stack()[2].filename
-        if any(x in caller for x in ['<ipython-input', '/xpython_', '/ipykernel_', '<stdin>']):
+        interpreters = ['<ipython-input', 'xpython_', 'ipykernel_', '<stdin>']
+        if any(x in caller for x in interpreters):
             # class initialized from interactive shell or notebook
             p0 = '.'
         else:
-            # class initialized from a Python module
+            # class initialized from module
             p0 = caller
         p = p0 = Path(p0).resolve()
         while p != p.anchor:
-            if (p/self.pkg_name).exists() and (p/self.nbs_dir).exists():
+            pkg_dir = p / self.pkg_name
+            nbs_dir = p / self.nbs_dir_name
+            if pkg_dir.exists() and nbs_dir.exists():
                 return p
             p = p.parent
         raise Exception(f'Could not find project root above "{p0}".')
@@ -81,106 +114,135 @@ class Nbd:
         if link.exists():
             assert link.is_symlink(), f'Symbolic link expected at "{link.absolute()}".'
         else:
-            to = f'../{self.pkg_name}'
+            to = Path(f'../{self.pkg_name}')
             link.symlink_to(to, target_is_directory=True)
             link = link.absolute().relative_to(self.root)
-            to = Path(to).resolve().relative_to(self.root)
-            print(f'Symbolic link created "{link}" -> "{to}"')
+            to = to.resolve().relative_to(self.root)
+            print(f'Creating symbolic link "{link}" -> "{to}"')
+            
         os.chdir(cur_dir)
-
-    def nb2mod(self, nb_rel_path):
-        """`nb_rel_path` is relative to project's notebook directory."""
-        nb_rel_path = Path(nb_rel_path)
-        nb_path = self.nbs_path/nb_rel_path
-        assert nb_path.exists() and nb_path.is_file(), f'Notebook not found at "{nb_path}".'
-        nb = nbformat.read(nb_path, nbformat.current_nbformat)
-        nb.cells = [c for c in nb.cells if (c.cell_type == 'code') and ('module' in get_cell_flags(c))]
-        exporter = nbconvert.exporters.PythonExporter(exclude_input_prompt=True)
-        script, _ = exporter.from_notebook_node(nb)
-        mod_path = self.pkg_path/nb_rel_path.with_suffix('.py')
-        
-        # remove #nbd lines, convert abs to rel imports
-        script = '\n'.join(self._relative_import(l, mod_path.relative_to(self.root))
-                           for l in script.split('\n')
-                           if not l.startswith('#nbd'))
-        
-        mod_path.parent.mkdir(parents=True, exist_ok=True)
-        mod_path.write_text(script)
-        
-        src = nb_path.relative_to(self.root)
-        dst = mod_path.relative_to(self.root)
-        print(f'Converted notebook "{src}" to module "{dst}".')
-        
-    def _relative_import(self, line, file_rel_path):
-        """Replace line like "from pkg.subpkg.mod1 import obj" in file "pkg/subpkg/mod2.py"
-        with "from .mod1 import obj"
-        """
-        pattern = r'^(\s*)from \s*(\S+)\s* import (.*)$'
-        m = re.match(pattern, line)
-        if not m: 
-            return line
-        indent, mod, obj = m.groups()
-        if not mod.startswith(self.pkg_name):
-            return line
-        # mod is like "pkg.subpkg.mod1", mod_path is like "pkg/subpkg/mod2.py"
-        # need to replace each part of common prefix with a dot
-        mod_parts = mod.split('.')
-        path_parts = list(Path(file_rel_path).parts)
-        common_len = 0
-        while ((common_len < len(mod_parts))
-               and (common_len < len(path_parts))
-               and (mod_parts[common_len] == path_parts[common_len])):
-            common_len += 1
-        dots = '.' * (len(path_parts) - common_len)
-        rel_mod = dots + '.'.join(mod_parts[common_len:])
-        return f'{indent}from {rel_mod} import {obj}'
 ```
 
 ```{code-cell} ipython3
-nbd = Nbd('reseng')
-assert nbd._relative_import('not an import statement', 'pkg/mod.py') == 'not an import statement'
-assert nbd._relative_import('from reseng import mod1', 'reseng/mod2.py') == 'from . import mod1'
-assert nbd._relative_import('from reseng.mod1 import obj', 'reseng/mod2.py') == 'from .mod1 import obj'
-assert nbd._relative_import('from reseng.subpkg.mod1 import obj', 'reseng/subpkg/mod2.py') == 'from .mod1 import obj'
-assert nbd._relative_import('from reseng.subpkg1.mod import obj', 'reseng/subpkg2/mod.py') == 'from ..subpkg1.mod import obj'
-assert nbd._relative_import('from reseng.mod1 import obj', 'reseng/subpkg1/mod.py') == 'from ..mod1 import obj'
+:tags: []
+
+def test_nbd_init():
+    Path('reseng').unlink(missing_ok=True)
+    nbd = Nbd('reseng')
+    print('Project root:', nbd.root)
+    pkg_dir = Path('reseng')
+    print('Package files:', ', '.join(str(p.relative_to(pkg_dir)) for p in pkg_dir.iterdir()))
+test_nbd_init()
 ```
 
-# Markup
+## Conversion to module
 
-See this [SO answer](https://stackoverflow.com/a/20885980/1447107) about Markdown comments.
+`Nbd.nb2mod()` exports cells tagged with `nbd-module` to a script, mirroring relative path to the notebook in the package folder.
+
+Helper function `Nbd._relative_import()` replaces absolute import from the project package with relative ones. Relative import statements are good for package portability, but can not be used in a notebook.
+
+**Alternative.** Jupytext can automatically maintain script version of the notebook. For example, this notebook can be configured to exist in three formats: .ipynb and .md in `nbs` folder and .py in `reseng` folder by setting in the notebook metadata: `"formats": "nbs///ipynb,nbs///md:myst,reseng///py:nomarker"`. We can use `ipynb-active` cell tags to comment out unwanted code in the script.  
+One limitation of this automatic conversion is that absolute paths are not changed to relative. So modules will not corretly import other package modules, unless execution is started from a folder where package or it's symlink is. But then the package can not be used as a dependency in another project.
 
 ```{code-cell} ipython3
-#nbd module
-def get_cell_flags(cell):
-    first_line = cell.source.split('\n', 1)[0].strip()
-    if cell.cell_type == 'code' and first_line.startswith('#nbd'):
-        return first_line.split()[1:]
-    if cell.cell_type == 'markdown' and first_line.startswith('[nbd]:'):
-        return first_line.split('"')[1].split()
-    return []
+:tags: [nbd-module]
+
+def __relative_import(self, line, script_rel_path):
+    """Replace absolute import statement in a line with relative.
+    `script_rel_path` must be relative to package dir.
+    """
+    pattern = r'^(\s*)from \s*(\S+)\s* import (.*)$'
+    m = re.match(pattern, line)
+    if not m: 
+        return line
+    indent, abs_module, obj = m.groups()
+    if not abs_module.startswith(self.pkg_name):
+        return line
+    
+    module_as_rel_path = Path(*abs_module.split('.')[1:])
+    script_rel_path = Path(script_rel_path)
+    common_prefix = Path(os.path.commonpath([module_as_rel_path, script_rel_path]))
+    module_rel_to_prefix = module_as_rel_path.relative_to(common_prefix).parts
+    script_rel_to_prefix = script_rel_path.relative_to(common_prefix).parts
+    rel_module = '.' * len(script_rel_to_prefix) + '.'.join(module_rel_to_prefix)
+    
+    return f'{indent}from {rel_module} import {obj}'
+Nbd._relative_import = __relative_import
 ```
-
-# nbconvert
-
-+++
-
-If we want to match anywhere in the cell we need:
-
-`patterns=['(?ms).*ABRA']`
-
-where `(?ms)` are regex flags: re.M (multi-line), re.S (dot matches all)
 
 ```{code-cell} ipython3
-# preprocessors
-prep_select_module_cells = nbconvert.preprocessors.RegexRemovePreprocessor(patterns=['(?!#nbd module)'])
-exporter = nbconvert.exporters.PythonExporter(preprocessors=[prep_select_module_cells], exclude_input_prompt=True)
-script, _ = exporter.from_filename('nbd_test.ipynb')
+:tags: []
+
+def test_relative_import():
+    from types import SimpleNamespace
+    x = SimpleNamespace(pkg_name='pkg')
+    tests = [
+        ('a.py', 'not an import statement', 'not an import statement'),
+        ('a.py', 'from not_pkg import obj', 'from not_pkg import obj'),
+        ('a2.py', 'from pkg import a1', 'from . import a1'),
+        ('a2.py', '    from pkg import a1', '    from . import a1'),
+        ('a2.py', 'from pkg.a1 import b', 'from .a1 import b'),
+        ('a/b2.py', 'from pkg.a import b1', 'from . import b1'),
+        ('a2/b.py', 'from pkg import a1', 'from .. import a1'),
+        ('a2/b.py', 'from pkg.a1 import b', 'from ..a1 import b'),
+        ('a/b/c2.py', 'from pkg.a.b import c2', 'from . import c2'),
+        ('a/b2/c.py', 'from pkg.a import b1', 'from .. import b1'),
+        ('a/b2/c.py', 'from pkg.a.b1 import c', 'from ..b1 import c'),
+        ('a2/b/c.py', 'from pkg.a1.b import c', 'from ...a1.b import c')
+    ]
+    for file, line, expected in tests:
+        assert __relative_import(x, line, file) == expected
+test_relative_import()
 ```
+
+```{code-cell} ipython3
+:tags: [nbd-module]
+
+def __nb2mod(self, nb_rel_path):
+    """Convert notebook to script, only including cells tagged with "nbd-module".
+    `nb_rel_path` is relative to project's notebook directory."""
+    nb_rel_path = Path(nb_rel_path)
+    nb_path = self.nbs_path / nb_rel_path
+    assert nb_path.is_file(), f'Notebook not found at "{nb_path}".'
+    nb = nbformat.read(nb_path, nbformat.current_nbformat)
+    nb.cells = [c for c in nb.cells 
+                if ((c.cell_type == 'code') 
+                    and ('tags' in  c.metadata)
+                    and ('nbd-module' in c.metadata.tags))]
+    exporter = nbconvert.exporters.PythonExporter(exclude_input_prompt=True)
+    script, _ = exporter.from_notebook_node(nb)
+    mod_path = self.pkg_path / nb_rel_path.with_suffix('.py')
+
+    # convert abs to rel imports
+    script = '\n'.join(self._relative_import(l, mod_path.relative_to(self.pkg_path))
+                       for l in script.split('\n'))
+
+    mod_path.parent.mkdir(parents=True, exist_ok=True)
+    mod_path.write_text(script)
+
+    src = nb_path.relative_to(self.root)
+    dst = mod_path.relative_to(self.root)
+    print(f'Converted notebook "{src}" to module "{dst}".')
+Nbd.nb2mod = __nb2mod
+```
+
++++ {"tags": []}
 
 # Build this module
 
 ```{code-cell} ipython3
+:tags: []
+
+nbd = Nbd('reseng')
+nbd.nb2mod('nbd.ipynb')
+```
+
+Restart kernel, build again, but now using the module itself.
+
+```{code-cell} ipython3
+:tags: []
+
+from reseng.nbd import Nbd
 nbd = Nbd('reseng')
 nbd.nb2mod('nbd.ipynb')
 ```

@@ -10,28 +10,30 @@ import nbconvert
 import nbformat
 
 class Nbd:
-    def __init__(self, pkg_name, nbs_dir='nbs'):
+    nbs_dir_name = 'nbs'
+    
+    def __init__(self, pkg_name):
         self.pkg_name = pkg_name
-        self.nbs_dir = nbs_dir
         self.root = self._locate_root_path()
-        p = self.pkg_path = self.root/pkg_name
-        assert p.exists() and p.is_dir()
-        p = self.nbs_path = self.root/nbs_dir
-        assert p.exists() and p.is_dir()
+        self.pkg_path = self.root / pkg_name
+        self.nbs_path = self.root / self.nbs_dir_name
         self._make_symlinks()
         
     def _locate_root_path(self):
         # call stack: 0=this function, 1=__init__(), 2=caller
         caller = inspect.stack()[2].filename
-        if any(x in caller for x in ['<ipython-input', '/xpython_', '/ipykernel_', '<stdin>']):
+        interpreters = ['<ipython-input', 'xpython_', 'ipykernel_', '<stdin>']
+        if any(x in caller for x in interpreters):
             # class initialized from interactive shell or notebook
             p0 = '.'
         else:
-            # class initialized from a Python module
+            # class initialized from module
             p0 = caller
         p = p0 = Path(p0).resolve()
         while p != p.anchor:
-            if (p/self.pkg_name).exists() and (p/self.nbs_dir).exists():
+            pkg_dir = p / self.pkg_name
+            nbs_dir = p / self.nbs_dir_name
+            if pkg_dir.exists() and nbs_dir.exists():
                 return p
             p = p.parent
         raise Exception(f'Could not find project root above "{p0}".')
@@ -44,66 +46,62 @@ class Nbd:
         if link.exists():
             assert link.is_symlink(), f'Symbolic link expected at "{link.absolute()}".'
         else:
-            to = f'../{self.pkg_name}'
+            to = Path(f'../{self.pkg_name}')
             link.symlink_to(to, target_is_directory=True)
             link = link.absolute().relative_to(self.root)
-            to = Path(to).resolve().relative_to(self.root)
-            print(f'Symbolic link created "{link}" -> "{to}"')
+            to = to.resolve().relative_to(self.root)
+            print(f'Creating symbolic link "{link}" -> "{to}"')
+            
         os.chdir(cur_dir)
 
-    def nb2mod(self, nb_rel_path):
-        """`nb_rel_path` is relative to project's notebook directory."""
-        nb_rel_path = Path(nb_rel_path)
-        nb_path = self.nbs_path/nb_rel_path
-        assert nb_path.exists() and nb_path.is_file(), f'Notebook not found at "{nb_path}".'
-        nb = nbformat.read(nb_path, nbformat.current_nbformat)
-        nb.cells = [c for c in nb.cells if (c.cell_type == 'code') and ('module' in get_cell_flags(c))]
-        exporter = nbconvert.exporters.PythonExporter(exclude_input_prompt=True)
-        script, _ = exporter.from_notebook_node(nb)
-        mod_path = self.pkg_path/nb_rel_path.with_suffix('.py')
-        
-        # remove #nbd lines, convert abs to rel imports
-        script = '\n'.join(self._relative_import(l, mod_path.relative_to(self.root))
-                           for l in script.split('\n')
-                           if not l.startswith('#nbd'))
-        
-        mod_path.parent.mkdir(parents=True, exist_ok=True)
-        mod_path.write_text(script)
-        
-        src = nb_path.relative_to(self.root)
-        dst = mod_path.relative_to(self.root)
-        print(f'Converted notebook "{src}" to module "{dst}".')
-        
-    def _relative_import(self, line, file_rel_path):
-        """Replace line like "from pkg.subpkg.mod1 import obj" in file "pkg/subpkg/mod2.py"
-        with "from .mod1 import obj"
-        """
-        pattern = r'^(\s*)from \s*(\S+)\s* import (.*)$'
-        m = re.match(pattern, line)
-        if not m: 
-            return line
-        indent, mod, obj = m.groups()
-        if not mod.startswith(self.pkg_name):
-            return line
-        # mod is like "pkg.subpkg.mod1", mod_path is like "pkg/subpkg/mod2.py"
-        # need to replace each part of common prefix with a dot
-        mod_parts = mod.split('.')
-        path_parts = list(Path(file_rel_path).parts)
-        common_len = 0
-        while ((common_len < len(mod_parts))
-               and (common_len < len(path_parts))
-               and (mod_parts[common_len] == path_parts[common_len])):
-            common_len += 1
-        dots = '.' * (len(path_parts) - common_len)
-        rel_mod = dots + '.'.join(mod_parts[common_len:])
-        return f'{indent}from {rel_mod} import {obj}'
+
+def __relative_import(self, line, script_rel_path):
+    """Replace absolute import statement in a line with relative.
+    `script_rel_path` must be relative to package dir.
+    """
+    pattern = r'^(\s*)from \s*(\S+)\s* import (.*)$'
+    m = re.match(pattern, line)
+    if not m: 
+        return line
+    indent, abs_module, obj = m.groups()
+    if not abs_module.startswith(self.pkg_name):
+        return line
+    
+    module_as_rel_path = Path(*abs_module.split('.')[1:])
+    script_rel_path = Path(script_rel_path)
+    common_prefix = Path(os.path.commonpath([module_as_rel_path, script_rel_path]))
+    module_rel_to_prefix = module_as_rel_path.relative_to(common_prefix).parts
+    script_rel_to_prefix = script_rel_path.relative_to(common_prefix).parts
+    rel_module = '.' * len(script_rel_to_prefix) + '.'.join(module_rel_to_prefix)
+    
+    return f'{indent}from {rel_module} import {obj}'
+Nbd._relative_import = __relative_import
 
 
-def get_cell_flags(cell):
-    first_line = cell.source.split('\n', 1)[0].strip()
-    if cell.cell_type == 'code' and first_line.startswith('#nbd'):
-        return first_line.split()[1:]
-    if cell.cell_type == 'markdown' and first_line.startswith('[nbd]:'):
-        return first_line.split('"')[1].split()
-    return []
+def __nb2mod(self, nb_rel_path):
+    """Convert notebook to script, only including cells tagged with "nbd-module".
+    `nb_rel_path` is relative to project's notebook directory."""
+    nb_rel_path = Path(nb_rel_path)
+    nb_path = self.nbs_path / nb_rel_path
+    assert nb_path.is_file(), f'Notebook not found at "{nb_path}".'
+    nb = nbformat.read(nb_path, nbformat.current_nbformat)
+    nb.cells = [c for c in nb.cells 
+                if ((c.cell_type == 'code') 
+                    and ('tags' in  c.metadata)
+                    and ('nbd-module' in c.metadata.tags))]
+    exporter = nbconvert.exporters.PythonExporter(exclude_input_prompt=True)
+    script, _ = exporter.from_notebook_node(nb)
+    mod_path = self.pkg_path / nb_rel_path.with_suffix('.py')
+
+    # convert abs to rel imports
+    script = '\n'.join(self._relative_import(l, mod_path.relative_to(self.pkg_path))
+                       for l in script.split('\n'))
+
+    mod_path.parent.mkdir(parents=True, exist_ok=True)
+    mod_path.write_text(script)
+
+    src = nb_path.relative_to(self.root)
+    dst = mod_path.relative_to(self.root)
+    print(f'Converted notebook "{src}" to module "{dst}".')
+Nbd.nb2mod = __nb2mod
 

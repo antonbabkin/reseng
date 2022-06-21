@@ -10,3 +10,4 @@ tmp/
 # symbolic links to packages: OS dependent, created on init
 nbs/reseng
 
+.DS_Store

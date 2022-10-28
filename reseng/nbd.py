@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+import sys
 import os
 import re
 from pathlib import Path
@@ -18,8 +19,12 @@ class Nbd:
         self.root = self._locate_root_path()
         self.pkg_path = self.root / pkg_name
         self.nbs_path = self.root / self.nbs_dir_name
-        self._make_symlinks()
+        self.tmp = self.root / 'tmp' # convenience shortcut, may not exist
         
+        # verify that symlink to package dir exists inside of nbs dir
+        p = self.nbs_path / pkg_name
+        assert p.exists() and p.is_symlink()
+
     def _locate_root_path(self):
         # call stack: 0=this function, 1=__init__(), 2=caller
         caller = inspect.stack()[2].filename
@@ -38,22 +43,12 @@ class Nbd:
                 return p
             p = p.parent
         raise Exception(f'Could not find project root above "{p0}".')
-        
-    def _make_symlinks(self):
-        # support for nested subpackages can be added by recursing into subdirs of nbs/ and making links in them
-        cur_dir = Path.cwd()
-        os.chdir(self.nbs_path)
-        link = Path(self.pkg_name)
-        if link.exists():
-            assert link.is_symlink(), f'Symbolic link expected at "{link.absolute()}".'
-        else:
-            to = Path(f'../{self.pkg_name}')
-            link.symlink_to(to, target_is_directory=True)
-            link = link.absolute().relative_to(self.root)
-            to = to.resolve().relative_to(self.root)
-            print(f'Creating symbolic link "{link}" -> "{to}"')
-            
-        os.chdir(cur_dir)
+
+def test_nbd_init():
+    nbd = Nbd('reseng')
+    print('Project root:', nbd.root)
+    pkg_dir = Path('reseng')
+    print('Package modules:', ', '.join(str(p.relative_to(pkg_dir)) for p in pkg_dir.iterdir() if p.suffix == '.py'))
 
 
 def __relative_import(self, line, script_rel_path):
@@ -77,6 +72,26 @@ def __relative_import(self, line, script_rel_path):
     
     return f'{indent}from {rel_module} import {obj}'
 Nbd._relative_import = __relative_import
+
+def test_relative_import():
+    from types import SimpleNamespace
+    x = SimpleNamespace(pkg_name='pkg')
+    tests = [
+        ('a.py', 'not an import statement', 'not an import statement'),
+        ('a.py', 'from not_pkg import obj', 'from not_pkg import obj'),
+        ('a2.py', 'from pkg import a1', 'from . import a1'),
+        ('a2.py', '    from pkg import a1', '    from . import a1'),
+        ('a2.py', 'from pkg.a1 import b', 'from .a1 import b'),
+        ('a/b2.py', 'from pkg.a import b1', 'from . import b1'),
+        ('a2/b.py', 'from pkg import a1', 'from .. import a1'),
+        ('a2/b.py', 'from pkg.a1 import b', 'from ..a1 import b'),
+        ('a/b/c2.py', 'from pkg.a.b import c2', 'from . import c2'),
+        ('a/b2/c.py', 'from pkg.a import b1', 'from .. import b1'),
+        ('a/b2/c.py', 'from pkg.a.b1 import c', 'from ..b1 import c'),
+        ('a2/b/c.py', 'from pkg.a1.b import c', 'from ...a1.b import c')
+    ]
+    for file, line, expected in tests:
+        assert __relative_import(x, line, file) == expected
 
 
 def __nb2mod(self, nb_rel_path):
@@ -105,4 +120,31 @@ def __nb2mod(self, nb_rel_path):
     dst = mod_path.relative_to(self.root)
     print(f'Converted notebook "{src}" to module "{dst}".')
 Nbd.nb2mod = __nb2mod
+
+def test_nbd_nb2mod():
+    nbd = Nbd('reseng')
+    nbd.nb2mod('nbd.ipynb')
+
+
+def filter_docs():
+    """Only keep cells with "nbd-docs" tag.
+    Reads notebook from STDIN and prints filtered notebook to STDOUT.
+    """
+    nb = nbformat.reads(sys.stdin.read(), as_version=nbformat.NO_CONVERT)
+    nb.cells = [
+        c for c in nb.cells
+        if ('tags' in c.metadata) and ('nbd-docs' in c.metadata.tags)
+    ]
+    nbformat.write(nb, sys.stdout)
+
+
+if __name__ == '__main__':
+    if sys.argv[1] == 'filter-docs':
+        filter_docs()
+
+
+def test_all():
+    test_nbd_init()
+    test_relative_import()
+    test_nbd_nb2mod()
 

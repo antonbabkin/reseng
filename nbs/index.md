@@ -47,6 +47,9 @@ Add symlinks to `.gitignore` to avoid confusion.
 Project root detection can be done by simply checking the `__file__` variable.
 Unlike `nbd`, here we are looking for this project's root, and not for caller project's root.
 
+*Limitation.*
+This code does not create symlink inside of subfolders of the notebooks folder if they exist.
+
 ```{code-cell} ipython3
 :tags: [nbd-module]
 
@@ -107,6 +110,15 @@ Run initialization in the notebook.
 :tags: []
 
 init()
+```
+
+# Reproduction and testing
+
+```{code-cell} ipython3
+:tags: []
+
+from reseng import nbd
+nbd.test_all()
 ```
 
 # Build this module

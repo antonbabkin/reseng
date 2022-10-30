@@ -5,7 +5,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.11.5
+    jupytext_version: 1.14.0
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -27,8 +27,8 @@ To test disk I/O speed on Linux:
 - read: `dd if=tempfile of=/dev/null bs=1M count=1024`
 
 ```{code-cell} ipython3
-#default_exp monitor
-#export
+:tags: [nbd-module]
+
 import sys
 import os
 import io
@@ -44,15 +44,12 @@ from psutil._common import bytes2human
 ```
 
 ```{code-cell} ipython3
-#export
+:tags: [nbd-module]
 
 def usage_log(pid, interval=1):
     """Regularly write resource usage to stdout."""
     # local imports make function self-sufficient
     import time, psutil
-
-    if psutil.MACOS:
-        warnings.warn('Disk I/O stats are not available on MacOS.')
 
     p = psutil.Process(pid)
 
@@ -84,6 +81,8 @@ class ResourceMonitor:
         self.interval = interval
         self.tags = []
         self.df = None
+        if psutil.MACOS:
+            warnings.warn('Disk I/O stats are not available on MacOS.')
 
     def start(self):
         code = inspect.getsource(usage_log) + f'\nusage_log({self.pid}, {self.interval})'
@@ -160,24 +159,20 @@ class ResourceMonitor:
         m.tags = d['tags']
         m.df = pd.read_csv(io.StringIO(d['data'])).set_index('elapsed')
         return m
-```
 
-```{code-cell} ipython3
-# TEST
-from tempfile import TemporaryFile, NamedTemporaryFile
-
-def use_cpu(t):
+    
+def _use_cpu(t):
     t0 = time.time()
     while time.time() - t0 < t:
         x = 1
 
-def use_mem(s, n):
+def _use_mem(s, n):
     x = []
     for _ in range(n):
         x += [1] * s * 1_000_000
         time.sleep(1)
 
-def write(f, size_mb):
+def _write(f, size_mb):
     size = size_mb * 2**20
     count = 0
     block_size = 8 * 2**10
@@ -187,61 +182,78 @@ def write(f, size_mb):
         count += f.write(data)
         f.flush()
 
-def read(f):
+def _read(f):
     block_size = 8 * 2**10
     f.seek(0)
     while f.peek():
-        f.read(block_size)
+            f.read(block_size)
 
-mon = ResourceMonitor(interval=0.1)
-mon.start()
-time.sleep(2)
-mon.tag('cpu v')
-use_cpu(2)
-mon.tag('cpu ^')
-time.sleep(1)
-mon.tag('mem1 v')
-use_mem(30, 2)
-mon.tag('mem1 ^')
-time.sleep(1)
-mon.tag('mem2 v')
-use_mem(10, 2)
-mon.tag('mem2 ^')
-time.sleep(1)
-with TemporaryFile() as tf:
-    mon.tag('write v')
-    write(tf, 1000)
-    mon.tag('write ^')
+            
+def test_resource_monitor():
+    from tempfile import TemporaryFile, NamedTemporaryFile
+
+    mon = ResourceMonitor(interval=0.1)
+    mon.start()
+    time.sleep(2)
+    mon.tag('cpu v')
+    _use_cpu(2)
+    mon.tag('cpu ^')
     time.sleep(1)
-    mon.tag('read v')
-    read(tf)
-    mon.tag('read ^')
-time.sleep(1)
-mon.stop()
-mon.plot()
+    mon.tag('mem1 v')
+    _use_mem(30, 2)
+    mon.tag('mem1 ^')
+    time.sleep(1)
+    mon.tag('mem2 v')
+    _use_mem(10, 2)
+    mon.tag('mem2 ^')
+    time.sleep(1)
+    with TemporaryFile() as tf:
+        mon.tag('write v')
+        _write(tf, 1000)
+        mon.tag('write ^')
+        time.sleep(1)
+        mon.tag('read v')
+        _read(tf)
+        mon.tag('read ^')
+    time.sleep(1)
+    mon.stop()
+    mon.plot()
+
+def test_resource_monitor_serialization():
+    from tempfile import TemporaryFile, NamedTemporaryFile
+    
+    m1 = ResourceMonitor(interval=0.2)
+    m1.start()
+    time.sleep(1)
+    m1.tag('start')
+    _use_cpu(2)
+    m1.tag('stop')
+    time.sleep(1)
+    m1.stop()
+
+    with NamedTemporaryFile() as tf:
+        m1.dump(tf.name)
+        m2 = ResourceMonitor.load(tf.name)
+        m2.plot()
 ```
 
 ```{code-cell} ipython3
-# TEST serialization
-m1 = ResourceMonitor(interval=0.2)
-m1.start()
-time.sleep(1)
-m1.tag('start')
-use_cpu(2)
-m1.tag('stop')
-time.sleep(1)
-m1.stop()
+:tags: []
 
-with NamedTemporaryFile() as tf:
-    m1.dump(tf.name)
-    m2 = ResourceMonitor.load(tf.name)
-    m2.plot()
+test_resource_monitor()
+```
+
+```{code-cell} ipython3
+:tags: []
+
+test_resource_monitor_serialization()
 ```
 
 # Decorator for function runtime
 
 ```{code-cell} ipython3
-#export
+:tags: [nbd-module]
+
 def func_sig(f, *args, **kwargs):
     """Return string representing function with argument values."""
     import pandas as pd
@@ -275,17 +287,22 @@ def log_start_finish(f):
         print(f'{time.asctime()}: {sig} finished in {dt:.2f} seconds.')
         return res
     return wrapper
+
+def test_log_start_finish():
+    import pandas as pd
+
+    @log_start_finish
+    def func(x, d):
+        time.sleep(0.5)
+        return x + 1
+
+    func(1, d=pd.DataFrame(index=range(1000), columns=range(5)))
 ```
 
 ```{code-cell} ipython3
-import pandas as pd
+:tags: []
 
-@log_start_finish
-def func(x, d):
-    time.sleep(0.5)
-    return x + 1
-
-func(1, d=pd.DataFrame(index=range(1000), columns=range(5)))
+test_log_start_finish()
 ```
 
 Also works under multiprocessing, although output can get scrambled if multiple processes try to print at the same time. A more robust solution for multiprocessing can use [logging](https://docs.python.org/3/howto/logging-cookbook.html#logging-to-a-single-file-from-multiple-processes) module.
@@ -301,4 +318,33 @@ def func(x):
 with multiprocessing.Pool(2) as pool:
     result = pool.map(func, range(4))
 result
+```
+
+# Tests
+
+```{code-cell} ipython3
+:tags: [nbd-module]
+
+def test_all():
+    test_resource_monitor()
+    test_resource_monitor_serialization()
+    test_log_start_finish()
+```
+
+```{code-cell} ipython3
+:tags: []
+
+test_all()
+```
+
++++ {"tags": []}
+
+# Build this module
+
+```{code-cell} ipython3
+:tags: []
+
+from reseng.nbd import Nbd
+nbd = Nbd('reseng')
+nbd.nb2mod('monitor.ipynb')
 ```

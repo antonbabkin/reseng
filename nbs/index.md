@@ -121,6 +121,20 @@ from reseng import nbd
 nbd.test_all()
 ```
 
+```{code-cell} ipython3
+:tags: []
+
+from reseng import caching
+caching.test_all()
+```
+
+```{code-cell} ipython3
+:tags: []
+
+from reseng import monitor
+monitor.test_all()
+```
+
 # Build this module
 
 ```{code-cell} ipython3

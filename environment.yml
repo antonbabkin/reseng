@@ -1,15 +1,10 @@
 name: reseng
 channels:
-  - defaults
+  - nodefaults
   - conda-forge
-  - damianavila82
 dependencies:
-  - python>=3.6
-  - ipython
+  - python>=3.9
   - matplotlib
   - pandas
-  - jupyter
   - jupyterlab
-  - rise
-  - pip:
-    - nbdime
+  - psutil

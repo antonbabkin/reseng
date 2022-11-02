@@ -1,0 +1,93 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Research Engineering",
+    "section": "",
+    "text": "“Research engineering” is a collection of tools and documentation of practices used to write research code.\nThis notebook includes all high level tasks of the project.\n\nInitialization\nRun code in this section when you start working with the project. It will create symbolic links necessary for file discovery within project directory structure. If project is used as a library, importing code must call the init() function.\nImport of project’s Python package reseng from notebooks requires the package folder to be on import path. The cell below achieves that by creating a symbolic link to package folder from the notebooks folder.\nIt is possible to commit symlinks to Git, but a subtle issue exists on Windows. Even though symlinks can be enabled in Windows and Git settings, they do not work for submodules. When parent repo is cloned and symlinks are initialized, the ones that point to yet-to-be-cloned submodule become invalid because submodule directories do not exist yet. To keep things uniform, manual symlink creation by the code below is required for all operating systems. Add symlinks to .gitignore to avoid confusion.\nProject root detection can be done by simply checking the __file__ variable. Unlike nbd, here we are looking for this project’s root, and not for caller project’s root.\nLimitation. This code does not create symlink inside of subfolders of the notebooks folder if they exist.\nRun initialization in the notebook.\n\ninit()\n\nInitializing project \"reseng\"...\n  Project \"reseng\" root directory: \"/Users/anton/work/reseng\"\n  symlink: \"nbs/reseng\" -> \"reseng\"\nInitialization of \"reseng\" finished.\n\n\n\n\n\nReproduction and testing\n\n\nCode\nfrom reseng import nbd\nnbd.test_all()\n\n\n\n\nCode\nfrom reseng import caching\ncaching.test_all()\n\n\n\n\nCode\nfrom reseng import monitor\nmonitor.test_all()\n\n\n\n\nCode\nfrom reseng import util\nutil.test_all()"
+  },
+  {
+    "objectID": "nbd.html",
+    "href": "nbd.html",
+    "title": "NBD",
+    "section": "",
+    "text": "“NBD” means development in the notebook. This tool supports usage of Jupyter notebooks for literate programming. Under the literate programming paradigm, a computer program is given an explanation of its logic in a natural language, such as English, interspersed (embedded) with snippets of macros and traditional source code, from which compilable source code can be generated.\nOur approach was greatly inspired by the nbdev project. Compared to nbdev, this tool that we call nbd has a more limited set of functionality, and is thus easier to use and maintain. The functions of nbd are the following:"
+  },
+  {
+    "objectID": "nbd.html#import-statements",
+    "href": "nbd.html#import-statements",
+    "title": "NBD",
+    "section": "import statements",
+    "text": "import statements\nAll imports from project modules into notebooks must take absolute form from package import module or from package.module import object. Relative import statements are good for package portability, but do not work in a notebook. Helper function Nbd._relative_import() replaces absolute imports of modules from the project package with relative ones. For example, from reseng.nbd import Nbd will become from .nbd import Nbd. For this reason, statement form import ... can not be used to import project modules."
+  },
+  {
+    "objectID": "monitor.html",
+    "href": "monitor.html",
+    "title": "Resource usage",
+    "section": "",
+    "text": "Resource usage monitoring can be done from outside of process - which measures process as a whole, or from inside. Outside is easier, but less precise.\nThis module provides a resource monitor class that watches a given process from a subprocess. It uses cross-platform psutil package to read process information. I/O stats are not available on MacOS.\n\nResource usage monitor\nResourceMonitor object starts an external process that logs resource usage. After monitor is stopped, usage log can be reviewed, saved and visualized.\n\n\nCode\nmon = ResourceMonitor(interval=0.1)\nmon.start()\ntime.sleep(1)\nmon.tag('cpu v')\n_use_cpu(1)\nmon.tag('cpu ^')\ntime.sleep(1)\nmon.tag('mem1 v')\n_use_mem(30, 1)\nmon.tag('mem1 ^')\ntime.sleep(1)\nmon.stop()\nmon.plot()\n\n\n/var/folders/sf/ryhxny2j13j694w2yc_mvn6h0000gn/T/ipykernel_54590/323380559.py:37: UserWarning: Disk I/O stats are not available on MacOS.\n  warnings.warn('Disk I/O stats are not available on MacOS.')\n\n\n\n\n\n\n\nDecorator for function runtime\nDecorator log_start_finish() will print function start and total runtime at function finish, showing function name and argument values.\nExample.\n\ndef test_log_start_finish():\n    import pandas as pd\n\n    @log_start_finish\n    def func(x, d):\n        time.sleep(0.5)\n        return x + 1\n\n    func(1, d=pd.DataFrame(index=range(1000), columns=range(5)))\n\n\ntest_log_start_finish()\n\nSat Oct 29 22:27:41 2022: func(1, d=dataframe(1000, 5)) started.\nSat Oct 29 22:27:41 2022: func(1, d=dataframe(1000, 5)) finished in 0.50 seconds."
+  },
+  {
+    "objectID": "multikernel.html",
+    "href": "multikernel.html",
+    "title": "Language kernels",
+    "section": "",
+    "text": "This notebook shows how to use different kernels (Python, R and Stata) in Jupyter. Keep in mind that with this approach communication between kernels is not possible, and data can be only shared by writing it to disk in a format understood by all kernels.\nStarting with Stata 17, Stata code can be directly executed from Python, and dataframes, matrices and results can be passed between Python kernel and Stata environment. See official documentation and our example notebook.\n\nSetup\n\nInstall Stata.\n\nOn Windows, follow instructions to link Stata Automation library.\n\nCreate new conda environment.\n\nconda create -n multikernel\nconda activate multikernel\nconda config --env --set channel_priority strict\nconda config --env --prepend channels conda-forge\nconda install python=3.9 mamba\n\nInstall Jupyter Lab (will come with IPython kernel), R Essentials (IRkernel, base R and some popular libraries) and Stata kernel. Add additional Python or R packages for your needs.\n\nmamba install jupyterlab r-essentials stata_kernel pandas\n\nConfigure Stata kernel.\n\npython -m stata_kernel.install\nAftewards you may need to change config file ~/.stata_kernel.conf to point to the right version of Stata. For example, on Linux config is set to use stata-mp, but you may not have license for that version.\n\nInstall JupyterLab extension to add Stata syntax highlighting.\n\nmamba install nodejs\njupyter labextension install jupyterlab-stata-highlight\n\n\nStata\nActivate Stata kernel. See a wide range of usage examples here.\n\nsysuse auto\n\n\ndescribe\n\n\nreg price mpg rep78 i.foreign\n\n\noutsheet using ../tmp/auto.csv, comma\n\n\n\nPython\nActivate Python kernel.\n\nimport pandas as pd\n\n\ndf = pd.read_csv('../tmp/auto.csv')\ndf.sample(3)\n\n\n\nR\nActivate R kernel.\n\nlibrary(ggplot2)\n\nggplot(mpg, aes(displ, hwy, colour = class)) + \n  geom_point()"
+  },
+  {
+    "objectID": "stata.html",
+    "href": "stata.html",
+    "title": "Stata + Python",
+    "section": "",
+    "text": "Beginning with version 17, Stata API can now be directly called from Python code. This notebook is an example of a start to finish analysis the combines stronger parts of Python and Stata. Specifically, I look how fraction of food and agricultural industries (FAI) employment relates to proportion of population living in rural areas.\nGuides and examples can be found at official pystata package documentation."
+  },
+  {
+    "objectID": "stata.html#download-naics-codes-and-pick-a-subset",
+    "href": "stata.html#download-naics-codes-and-pick-a-subset",
+    "title": "Stata + Python",
+    "section": "Download NAICS codes and pick a subset",
+    "text": "Download NAICS codes and pick a subset\nNAICS classification used in 2012 CBP.\nPick 6-digit NAICS codes that have “agri”, “food” or “farm” in description.\n\n\nCode\nimport pandas as pd\n\ndf = pd.read_csv('https://www2.census.gov/programs-surveys/cbp/technical-documentation/reference/naics-descriptions/naics2012.txt')\ndf = df[~df['NAICS'].str[-1].isin(['-', '/'])]\nnaics_fai = df.loc[[any(x in y.lower() for x in ('agri', 'food', 'farm')) for y in df['DESCRIPTION']], 'NAICS'].tolist()\ndf.query('NAICS.isin(@naics_fai)')"
+  },
+  {
+    "objectID": "stata.html#download-cbp-and-compute-fai-employment-share",
+    "href": "stata.html#download-cbp-and-compute-fai-employment-share",
+    "title": "Stata + Python",
+    "section": "Download CBP and compute FAI employment share",
+    "text": "Download CBP and compute FAI employment share\nUsing county-industry employment in 2012.\n\n\nCode\ndf = pd.read_csv('https://www2.census.gov/programs-surveys/cbp/datasets/2012/cbp12co.zip', dtype=str)\ndf = df[['fipstate', 'fipscty', 'naics', 'emp']]\ndf['emp'] = df['emp'].astype(int)\ndf['stcty'] = df['fipstate'] + df['fipscty']\ndf.loc[df['naics'] == '------', 'ind'] = 'all'\ndf.loc[df['naics'].isin(naics_fai), 'ind'] = 'fai'\nd = df.groupby(['stcty', 'ind'])['emp'].sum().unstack().fillna(0)\nfai_share = d['fai'] / d['all']\nfai_share.describe([0, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99, 1])"
+  },
+  {
+    "objectID": "stata.html#download-and-compute-rural-population-shares",
+    "href": "stata.html#download-and-compute-rural-population-shares",
+    "title": "Stata + Python",
+    "section": "Download and compute rural population shares",
+    "text": "Download and compute rural population shares\nCounty rurality is computed as fraction of population living in rural tracts. Tracts are defined as rural if their ERS RUCA codes are “6”, “9” or “10”.\n\n\nCode\ndf = pd.read_excel('https://www.ers.usda.gov/webdocs/DataFiles/53241/ruca2010revised.xlsx?v=2541.2', dtype=str, skiprows=1)\ndf = df[['State-County FIPS Code', 'Primary RUCA Code 2010', 'Secondary RUCA Code, 2010 (see errata)', 'Tract Population, 2010']]\ndf.columns = ['stcty', 'ruca_p', 'ruca_s', 'pop']\ndf['pop'] = df['pop'].astype(int)\ndf['rural'] = df['ruca_p'].isin(['6', '9', '10'])\nd = df.groupby(['stcty', 'rural'])['pop'].sum().unstack().fillna(0)\nrural_pop_share = d[True] / d.sum(1)\nrural_pop_share.describe([0, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99, 1])"
+  },
+  {
+    "objectID": "stata.html#merge-employment-and-population-data",
+    "href": "stata.html#merge-employment-and-population-data",
+    "title": "Stata + Python",
+    "section": "Merge employment and population data",
+    "text": "Merge employment and population data\n\n\nCode\ndf = pd.concat([rural_pop_share, fai_share], 1)\ndf.columns = ['rural_pop_share', 'fai_share']\ndf = df.dropna()\nreg_df = df\ndf.sample(frac=0.1).plot.scatter('rural_pop_share', 'fai_share')"
+  },
+  {
+    "objectID": "stata.html#ipython-magics",
+    "href": "stata.html#ipython-magics",
+    "title": "Stata + Python",
+    "section": "IPython magics",
+    "text": "IPython magics\nIPython magic %%stata can be used to execute snippets of Stata code. Here we use it to load previously prepared Pandas DataFrame as an active Stata dataset with a -d parameter (-force to replace previously loaded dataset).\n\n\nCode\n%%stata -force -d reg_df\ndescribe, short\n\n\nWe can use the same approach to run regression and post-estimation of marginal effects, printing output logs in the notebook. Estimation results can be brought back to Python context with -ret, -eret and -sret.\n\n\nCode\n%%stata -ret reg_ret\nreg fai_share rural_pop_share\nmargins, at(rural_pop_share=(0(0.1)1)) level(95)\n\n\nAll r() returns from the margins command are now stored in a Python dict.\n\n\nCode\nreg_ret\n\n\nStata plots will also be displayed in the notebook.\n\n\nCode\n%%stata\ntwoway scatter fai_share rural_pop_share in 1/500"
+  },
+  {
+    "objectID": "stata.html#stata-api",
+    "href": "stata.html#stata-api",
+    "title": "Stata + Python",
+    "section": "Stata API",
+    "text": "Stata API\nWe can also use pystata.stata.run() function to submit a string of Stata code for execution and retrieve returns with pystata.stata.get_return(). This allows for a more flexible customization of commands with Python string manipulation tools. Here we wrap regression and marginal effects code in a Python function that can be used to run estimation with different parameters and plot results.\n\n\nCode\nfrom pystata import stata\nimport matplotlib.pyplot as plt\n\ndef reg_margin_plot(level=95, poly=1):\n    rhs = 'rural_pop_share' + (poly-1) * ' c.rural_pop_share#c.rural_pop_share'\n    stata.run(f'''\n    reg fai_share {rhs}\n    margins, at(rural_pop_share=(0(0.1)1)) level({level})\n    ''', quietly=True)\n\n    r = stata.get_return()\n    plt.plot(r['r(at)'], r['r(b)'].T, 'b-')\n    plt.plot(r['r(at)'], r['r(table)'][4, :], 'b:')\n    plt.plot(r['r(at)'], r['r(table)'][5, :], 'b:')\n    plt.xlabel('Rural population share')\n    plt.ylabel('FAI employment share')\n    f = plt.gcf()\n    plt.close()\n    return f\n\nreg_margin_plot(90, 2)\n\n\nNow we can easily create an interactive interface to the regression code using widgets.\n\n\nCode\nimport ipywidgets as widgets\nwidgets.interact(reg_margin_plot,\n                 level=widgets.IntSlider(min=80, max=99, step=1, value=95, description='CI %'),\n                 poly=widgets.RadioButtons(options=[('Linear', 1), ('Quadratic', 2), ('Cubic', 3)], value=1, description='Polynomial'))"
+  },
+  {
+    "objectID": "util.html",
+    "href": "util.html",
+    "title": "Misc utils",
+    "section": "",
+    "text": "This module includes various useful utilities.\n\nFile download\ndownload_file() downloads a file and returns it’s path.\n\n\nPandas extensions\ntag_invalid_values() takes a pandas.Series and contraints like non-missing or > 5, and reports which values do not satisfy the contraints.\ngroup_exampler() shows an example of dataframe observations with a randomly picked group id, where one or all observations satisfy a given condition. Convenient to use with panel data to view full history of a single entity.\nExample.\n\n\nCode\ndf = pd.DataFrame([[i, t] for i in range(5) for t in range(3)], columns=['i', 't'])\ndf['x'] = np.random.randint(-10, 11, len(df))\npd.DataFrame.example = group_exampler(group_col='i', sort_col='t')\nprint('Dataframe head:')\ndisplay(df.head())\nprint('Example where any x > 0:')\ndisplay(df.example('x > 0'))\nprint('Example where all x > 0:')\ndisplay(df.example('x > 0', all=True))\n\n\nDataframe head:\n\n\n\n\n\n\n  \n    \n      \n      i\n      t\n      x\n    \n  \n  \n    \n      0\n      0\n      0\n      0\n    \n    \n      1\n      0\n      1\n      5\n    \n    \n      2\n      0\n      2\n      2\n    \n    \n      3\n      1\n      0\n      -8\n    \n    \n      4\n      1\n      1\n      7\n    \n  \n\n\n\n\nExample where any x > 0:\n\n\n\n\n\n\n  \n    \n      \n      i\n      t\n      x\n    \n  \n  \n    \n      6\n      2\n      0\n      7\n    \n    \n      7\n      2\n      1\n      -10\n    \n    \n      8\n      2\n      2\n      -7\n    \n  \n\n\n\n\nExample where all x > 0:\n\n\n\n\n\n\n  \n    \n      \n      i\n      t\n      x\n    \n  \n  \n    \n      12\n      4\n      0\n      8\n    \n    \n      13\n      4\n      1\n      5\n    \n    \n      14\n      4\n      2\n      6"
+  }
+]

@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.2.245">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Research Engineering - Stata + Python</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1.6em;
+  vertical-align: middle;
+}
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { color: #008000; } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { color: #008000; font-weight: bold; } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit"
+  }
+}</script>
+
+
+<link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">Research Engineering</span>
+    </a>
+  </div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="./index.html">
+ <span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./nbd.html">
+ <span class="menu-text">NBD</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./monitor.html">
+ <span class="menu-text">Resource usage</span></a>
+  </li>  
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-polyglot" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+ <span class="menu-text">Polyglot</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-polyglot">    
+        <li>
+    <a class="dropdown-item" href="./multikernel.html">
+ <span class="dropdown-text">Language kernels</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="./stata.html">
+ <span class="dropdown-text">Stata + Python</span></a>
+  </li>  
+    </ul>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" href="./util.html">
+ <span class="menu-text">Misc</span></a>
+  </li>  
+</ul>
+              <div id="quarto-search" class="" title="Search"></div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#installation" id="toc-installation" class="nav-link active" data-scroll-target="#installation">Installation</a></li>
+  <li><a href="#configuration" id="toc-configuration" class="nav-link" data-scroll-target="#configuration">Configuration</a></li>
+  <li><a href="#prepare-data-with-python" id="toc-prepare-data-with-python" class="nav-link" data-scroll-target="#prepare-data-with-python">Prepare data with Python</a>
+  <ul class="collapse">
+  <li><a href="#download-naics-codes-and-pick-a-subset" id="toc-download-naics-codes-and-pick-a-subset" class="nav-link" data-scroll-target="#download-naics-codes-and-pick-a-subset">Download NAICS codes and pick a subset</a></li>
+  <li><a href="#download-cbp-and-compute-fai-employment-share" id="toc-download-cbp-and-compute-fai-employment-share" class="nav-link" data-scroll-target="#download-cbp-and-compute-fai-employment-share">Download CBP and compute FAI employment share</a></li>
+  <li><a href="#download-and-compute-rural-population-shares" id="toc-download-and-compute-rural-population-shares" class="nav-link" data-scroll-target="#download-and-compute-rural-population-shares">Download and compute rural population shares</a></li>
+  <li><a href="#merge-employment-and-population-data" id="toc-merge-employment-and-population-data" class="nav-link" data-scroll-target="#merge-employment-and-population-data">Merge employment and population data</a></li>
+  </ul></li>
+  <li><a href="#analyze-with-stata-report-with-python" id="toc-analyze-with-stata-report-with-python" class="nav-link" data-scroll-target="#analyze-with-stata-report-with-python">Analyze with Stata, report with Python</a>
+  <ul class="collapse">
+  <li><a href="#ipython-magics" id="toc-ipython-magics" class="nav-link" data-scroll-target="#ipython-magics">IPython magics</a></li>
+  <li><a href="#stata-api" id="toc-stata-api" class="nav-link" data-scroll-target="#stata-api">Stata API</a></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Stata + Python</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<p>Beginning with version 17, Stata API can now be directly called from Python code. This notebook is an example of a start to finish analysis the combines stronger parts of Python and Stata. Specifically, I look how fraction of food and agricultural industries (FAI) employment relates to proportion of population living in rural areas.</p>
+<ul>
+<li>Download and parse raw data from web (Python).</li>
+<li>Compute new variables, merge two tables into single dataset (Python).</li>
+<li>Run an OLS regression and predict marginal effects (Stata).</li>
+<li>Display estimation results in a notebook and allow dynamic re-estimation controlled by widgets (Python).</li>
+</ul>
+<p>Guides and examples can be found at official <strong>pystata</strong> package <a href="https://www.stata.com/python/pystata/index.html">documentation</a>.</p>
+<section id="installation" class="level1">
+<h1>Installation</h1>
+<p>In order to run this example notebook, you need Stata 17 installation and a Python environment with <code>jupyter</code>, <code>pandas</code>, <code>matplotlib</code> and <code>ipywidgets</code> packages.</p>
+</section>
+<section id="configuration" class="level1">
+<h1>Configuration</h1>
+<p>Add location of <strong>pystata</strong> to paths that Python searches for import.</p>
+<div class="cell" data-tags="[&quot;nbd-docs&quot;]">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sys</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>sys.path.append(<span class="st">'/usr/local/stata17/utilities'</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pystata</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>pystata.config.init(<span class="st">'se'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="prepare-data-with-python" class="level1">
+<h1>Prepare data with Python</h1>
+<section id="download-naics-codes-and-pick-a-subset" class="level2">
+<h2 class="anchored" data-anchor-id="download-naics-codes-and-pick-a-subset">Download NAICS codes and pick a subset</h2>
+<p>NAICS classification used in <a href="https://www.census.gov/data/datasets/2012/econ/cbp/2012-cbp.html">2012 CBP</a>.</p>
+<p>Pick 6-digit NAICS codes that have “agri”, “food” or “farm” in description.</p>
+<div class="cell" data-tags="[&quot;nbd-docs&quot;]">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'https://www2.census.gov/programs-surveys/cbp/technical-documentation/reference/naics-descriptions/naics2012.txt'</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> df[<span class="op">~</span>df[<span class="st">'NAICS'</span>].<span class="bu">str</span>[<span class="op">-</span><span class="dv">1</span>].isin([<span class="st">'-'</span>, <span class="st">'/'</span>])]</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>naics_fai <span class="op">=</span> df.loc[[<span class="bu">any</span>(x <span class="kw">in</span> y.lower() <span class="cf">for</span> x <span class="kw">in</span> (<span class="st">'agri'</span>, <span class="st">'food'</span>, <span class="st">'farm'</span>)) <span class="cf">for</span> y <span class="kw">in</span> df[<span class="st">'DESCRIPTION'</span>]], <span class="st">'NAICS'</span>].tolist()</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>df.query(<span class="st">'NAICS.isin(@naics_fai)'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="download-cbp-and-compute-fai-employment-share" class="level2">
+<h2 class="anchored" data-anchor-id="download-cbp-and-compute-fai-employment-share">Download CBP and compute FAI employment share</h2>
+<p>Using county-industry employment in 2012.</p>
+<div class="cell" data-tags="[&quot;nbd-docs&quot;]">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'https://www2.census.gov/programs-surveys/cbp/datasets/2012/cbp12co.zip'</span>, dtype<span class="op">=</span><span class="bu">str</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> df[[<span class="st">'fipstate'</span>, <span class="st">'fipscty'</span>, <span class="st">'naics'</span>, <span class="st">'emp'</span>]]</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'emp'</span>] <span class="op">=</span> df[<span class="st">'emp'</span>].astype(<span class="bu">int</span>)</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'stcty'</span>] <span class="op">=</span> df[<span class="st">'fipstate'</span>] <span class="op">+</span> df[<span class="st">'fipscty'</span>]</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>df.loc[df[<span class="st">'naics'</span>] <span class="op">==</span> <span class="st">'------'</span>, <span class="st">'ind'</span>] <span class="op">=</span> <span class="st">'all'</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>df.loc[df[<span class="st">'naics'</span>].isin(naics_fai), <span class="st">'ind'</span>] <span class="op">=</span> <span class="st">'fai'</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>d <span class="op">=</span> df.groupby([<span class="st">'stcty'</span>, <span class="st">'ind'</span>])[<span class="st">'emp'</span>].<span class="bu">sum</span>().unstack().fillna(<span class="dv">0</span>)</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>fai_share <span class="op">=</span> d[<span class="st">'fai'</span>] <span class="op">/</span> d[<span class="st">'all'</span>]</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>fai_share.describe([<span class="dv">0</span>, <span class="fl">0.5</span>, <span class="fl">0.6</span>, <span class="fl">0.7</span>, <span class="fl">0.8</span>, <span class="fl">0.9</span>, <span class="fl">0.95</span>, <span class="fl">0.99</span>, <span class="dv">1</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="download-and-compute-rural-population-shares" class="level2">
+<h2 class="anchored" data-anchor-id="download-and-compute-rural-population-shares">Download and compute rural population shares</h2>
+<p>County rurality is computed as fraction of population living in rural tracts. Tracts are defined as rural if their ERS <a href="https://www.ers.usda.gov/data-products/rural-urban-commuting-area-codes/documentation/">RUCA codes</a> are “6”, “9” or “10”.</p>
+<div class="cell" data-tags="[&quot;nbd-docs&quot;]">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_excel(<span class="st">'https://www.ers.usda.gov/webdocs/DataFiles/53241/ruca2010revised.xlsx?v=2541.2'</span>, dtype<span class="op">=</span><span class="bu">str</span>, skiprows<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> df[[<span class="st">'State-County FIPS Code'</span>, <span class="st">'Primary RUCA Code 2010'</span>, <span class="st">'Secondary RUCA Code, 2010 (see errata)'</span>, <span class="st">'Tract Population, 2010'</span>]]</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>df.columns <span class="op">=</span> [<span class="st">'stcty'</span>, <span class="st">'ruca_p'</span>, <span class="st">'ruca_s'</span>, <span class="st">'pop'</span>]</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'pop'</span>] <span class="op">=</span> df[<span class="st">'pop'</span>].astype(<span class="bu">int</span>)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'rural'</span>] <span class="op">=</span> df[<span class="st">'ruca_p'</span>].isin([<span class="st">'6'</span>, <span class="st">'9'</span>, <span class="st">'10'</span>])</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>d <span class="op">=</span> df.groupby([<span class="st">'stcty'</span>, <span class="st">'rural'</span>])[<span class="st">'pop'</span>].<span class="bu">sum</span>().unstack().fillna(<span class="dv">0</span>)</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>rural_pop_share <span class="op">=</span> d[<span class="va">True</span>] <span class="op">/</span> d.<span class="bu">sum</span>(<span class="dv">1</span>)</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>rural_pop_share.describe([<span class="dv">0</span>, <span class="fl">0.5</span>, <span class="fl">0.6</span>, <span class="fl">0.7</span>, <span class="fl">0.8</span>, <span class="fl">0.9</span>, <span class="fl">0.95</span>, <span class="fl">0.99</span>, <span class="dv">1</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="merge-employment-and-population-data" class="level2">
+<h2 class="anchored" data-anchor-id="merge-employment-and-population-data">Merge employment and population data</h2>
+<div class="cell" data-tags="[&quot;nbd-docs&quot;]">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.concat([rural_pop_share, fai_share], <span class="dv">1</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>df.columns <span class="op">=</span> [<span class="st">'rural_pop_share'</span>, <span class="st">'fai_share'</span>]</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> df.dropna()</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>reg_df <span class="op">=</span> df</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>df.sample(frac<span class="op">=</span><span class="fl">0.1</span>).plot.scatter(<span class="st">'rural_pop_share'</span>, <span class="st">'fai_share'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+</section>
+<section id="analyze-with-stata-report-with-python" class="level1">
+<h1>Analyze with Stata, report with Python</h1>
+<section id="ipython-magics" class="level2">
+<h2 class="anchored" data-anchor-id="ipython-magics">IPython magics</h2>
+<p>IPython magic <code>%%stata</code> can be used to execute snippets of Stata code. Here we use it to load previously prepared Pandas DataFrame as an active Stata dataset with a <code>-d</code> parameter (<code>-force</code> to replace previously loaded dataset).</p>
+<div class="cell" data-tags="[&quot;nbd-docs&quot;]">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>stata <span class="op">-</span>force <span class="op">-</span>d reg_df</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>describe, short</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>We can use the same approach to run regression and post-estimation of marginal effects, printing output logs in the notebook. Estimation results can be brought back to Python context with <code>-ret</code>, <code>-eret</code> and <code>-sret</code>.</p>
+<div class="cell" data-tags="[&quot;nbd-docs&quot;]">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>stata <span class="op">-</span>ret reg_ret</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>reg fai_share rural_pop_share</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>margins, at(rural_pop_share<span class="op">=</span>(<span class="dv">0</span>(<span class="fl">0.1</span>)<span class="dv">1</span>)) level(<span class="dv">95</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>All <strong>r()</strong> returns from the <code>margins</code> command are now stored in a Python dict.</p>
+<div class="cell" data-tags="[&quot;nbd-docs&quot;]">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>reg_ret</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>Stata plots will also be displayed in the notebook.</p>
+<div class="cell" data-tags="[&quot;nbd-docs&quot;]">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>stata</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>twoway scatter fai_share rural_pop_share <span class="kw">in</span> <span class="dv">1</span><span class="op">/</span><span class="dv">500</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="stata-api" class="level2">
+<h2 class="anchored" data-anchor-id="stata-api">Stata API</h2>
+<p>We can also use <code>pystata.stata.run()</code> function to submit a string of Stata code for execution and retrieve returns with <code>pystata.stata.get_return()</code>. This allows for a more flexible customization of commands with Python string manipulation tools. Here we wrap regression and marginal effects code in a Python function that can be used to run estimation with different parameters and plot results.</p>
+<div class="cell" data-tags="[&quot;nbd-docs&quot;]">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pystata <span class="im">import</span> stata</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> reg_margin_plot(level<span class="op">=</span><span class="dv">95</span>, poly<span class="op">=</span><span class="dv">1</span>):</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    rhs <span class="op">=</span> <span class="st">'rural_pop_share'</span> <span class="op">+</span> (poly<span class="op">-</span><span class="dv">1</span>) <span class="op">*</span> <span class="st">' c.rural_pop_share#c.rural_pop_share'</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    stata.run(<span class="ss">f'''</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="ss">    reg fai_share </span><span class="sc">{</span>rhs<span class="sc">}</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="ss">    margins, at(rural_pop_share=(0(0.1)1)) level(</span><span class="sc">{</span>level<span class="sc">}</span><span class="ss">)</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="ss">    '''</span>, quietly<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    r <span class="op">=</span> stata.get_return()</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>    plt.plot(r[<span class="st">'r(at)'</span>], r[<span class="st">'r(b)'</span>].T, <span class="st">'b-'</span>)</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>    plt.plot(r[<span class="st">'r(at)'</span>], r[<span class="st">'r(table)'</span>][<span class="dv">4</span>, :], <span class="st">'b:'</span>)</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>    plt.plot(r[<span class="st">'r(at)'</span>], r[<span class="st">'r(table)'</span>][<span class="dv">5</span>, :], <span class="st">'b:'</span>)</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">'Rural population share'</span>)</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">'FAI employment share'</span>)</span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>    f <span class="op">=</span> plt.gcf()</span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>    plt.close()</span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> f</span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>reg_margin_plot(<span class="dv">90</span>, <span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>Now we can easily create an interactive interface to the regression code using widgets.</p>
+<div class="cell" data-tags="[&quot;nbd-docs&quot;]">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> ipywidgets <span class="im">as</span> widgets</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>widgets.interact(reg_margin_plot,</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>                 level<span class="op">=</span>widgets.IntSlider(<span class="bu">min</span><span class="op">=</span><span class="dv">80</span>, <span class="bu">max</span><span class="op">=</span><span class="dv">99</span>, step<span class="op">=</span><span class="dv">1</span>, value<span class="op">=</span><span class="dv">95</span>, description<span class="op">=</span><span class="st">'CI %'</span>),</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>                 poly<span class="op">=</span>widgets.RadioButtons(options<span class="op">=</span>[(<span class="st">'Linear'</span>, <span class="dv">1</span>), (<span class="st">'Quadratic'</span>, <span class="dv">2</span>), (<span class="st">'Cubic'</span>, <span class="dv">3</span>)], value<span class="op">=</span><span class="dv">1</span>, description<span class="op">=</span><span class="st">'Polynomial'</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

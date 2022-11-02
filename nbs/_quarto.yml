@@ -1,0 +1,35 @@
+project:
+  type: website
+  render:
+    - index.ipynb
+    - nbd.ipynb
+    - monitor.ipynb
+    - multikernel.ipynb
+    - stata.ipynb
+    - util.ipynb
+  post-render: touch _site/.nojekyll
+
+website:
+  title: "Research Engineering"
+  navbar:
+    background: primary
+    left:
+      - text: Home
+        href: index.ipynb
+      - nbd.ipynb
+      - monitor.ipynb
+      - text: Polyglot
+        menu:
+          - multikernel.ipynb
+          - stata.ipynb
+      - text: Misc
+        href: util.ipynb
+
+format:
+  html:
+    theme: cosmo
+    css: styles.css
+    toc: true
+
+
+

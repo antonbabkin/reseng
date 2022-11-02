@@ -20,8 +20,8 @@ title: "NBD"
 format:
   html: 
     code-fold: true
-#    ipynb-filters:
-#      - reseng/nbd.py filter-docs
+    ipynb-filters:
+      - reseng/nbd.py filter-docs
 ---
 ```
 
@@ -56,13 +56,13 @@ To use NBD features, project files should be organized into a specific structure
 Here is the minimal file structure, using this project as an example:
 
 ```
-nbs/                   # notebooks dir
-    nbd.ipynb          # this notebook
-    reseng/            # symlink to ../reseng/
-reseng/                # Python package dir
-    nbd.py             # module built from nbd.ipynb
-_site/                 # Web documentation dir
-    nbd.html           # doc page built from nbd.ipynb
+nbs/                 # notebooks dir
+  nbd.ipynb          # this notebook
+  reseng/            # symlink to ../reseng/
+  _site/             # Web documentation dir
+    nbd.html         # doc page built from nbd.ipynb
+reseng/              # Python package dir
+  nbd.py             # module built from nbd.ipynb
 ```
 
 `reseng` directory contains a Python package, built out of notebooks in the `nbs` directory.
@@ -341,7 +341,7 @@ Documentation is pushed to a separate `gh-pages` branch.
 Every push overwrites previous commit, erasing the history.
 
 ```bash
-ghp-import --no-history --push --force _site
+ghp-import --no-history --push --force nbs/_site
 ```
 
 ```{code-cell} ipython3

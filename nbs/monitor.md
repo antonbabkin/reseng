@@ -12,15 +12,31 @@ kernelspec:
   name: python3
 ---
 
-# Resource usage monitoring
+```{raw-cell}
+:tags: []
 
-Can be done from outside of process - which measures process as a whole, or from inside. Outside is easier, but less precise.
+---
+title: "Resource usage"
+format:
+  html: 
+    code-fold: true
+    ipynb-filters:
+      - reseng/nbd.py filter-docs
+---
+```
+
++++ {"tags": ["nbd-docs"]}
+
+Resource usage monitoring can be done from outside of process - which measures process as a whole, or from inside.
+Outside is easier, but less precise.
+
+This module provides a resource monitor class that watches a given process from a subprocess.
+It uses cross-platform `psutil` package to read process information.
+I/O stats are not available on MacOS.
+
++++ {"tags": []}
 
 [Memory usage](https://medium.com/survata-engineering-blog/monitoring-memory-usage-of-a-running-python-program-49f027e3d1ba) - medium article.
-
-
-Here is a resource monitor class that watches a given process from a subprocess. It uses cross-platform `psutil` package to read process information. I/O stats are not available on MacOS.
-
 
 To test disk I/O speed on Linux:
 - write: `sync; dd if=/dev/zero of=tempfile bs=1M count=1024; sync`
@@ -42,6 +58,13 @@ import functools
 import psutil
 from psutil._common import bytes2human
 ```
+
++++ {"tags": ["nbd-docs"]}
+
+# Resource usage monitor
+
+`ResourceMonitor` object starts an external process that logs resource usage.
+After monitor is stopped, usage log can be reviewed, saved and visualized.
 
 ```{code-cell} ipython3
 :tags: [nbd-module]
@@ -237,6 +260,26 @@ def test_resource_monitor_serialization():
         m2.plot()
 ```
 
+Example: use CPU, then use memory.
+
+```{code-cell} ipython3
+:tags: [nbd-docs]
+
+mon = ResourceMonitor(interval=0.1)
+mon.start()
+time.sleep(1)
+mon.tag('cpu v')
+_use_cpu(1)
+mon.tag('cpu ^')
+time.sleep(1)
+mon.tag('mem1 v')
+_use_mem(30, 1)
+mon.tag('mem1 ^')
+time.sleep(1)
+mon.stop()
+mon.plot()
+```
+
 ```{code-cell} ipython3
 :tags: []
 
@@ -249,7 +292,11 @@ test_resource_monitor()
 test_resource_monitor_serialization()
 ```
 
++++ {"tags": ["nbd-docs"]}
+
 # Decorator for function runtime
+
+Decorator `log_start_finish()` will print function start and total runtime at function finish, showing function name and argument values.
 
 ```{code-cell} ipython3
 :tags: [nbd-module]
@@ -287,7 +334,16 @@ def log_start_finish(f):
         print(f'{time.asctime()}: {sig} finished in {dt:.2f} seconds.')
         return res
     return wrapper
+```
 
++++ {"tags": ["nbd-docs"]}
+
+Example.
+
+```{code-cell} ipython3
+:tags: [nbd-module, nbd-docs]
+
+#| code-fold: false
 def test_log_start_finish():
     import pandas as pd
 
@@ -300,8 +356,9 @@ def test_log_start_finish():
 ```
 
 ```{code-cell} ipython3
-:tags: []
+:tags: [nbd-docs]
 
+#| code-fold: false
 test_log_start_finish()
 ```
 

@@ -20,14 +20,18 @@ title: "Research Engineering"
 format:
   html: 
     code-fold: true
-#    ipynb-filters:
-#      - reseng/nbd.py filter-docs
+    ipynb-filters:
+      - reseng/nbd.py filter-docs
 ---
 ```
 
-This is a top level notebook that includes all high level tasks of the project.
++++ {"tags": ["nbd-docs"]}
 
-+++
+"Research engineering" is documentation of practices and a collection of tools used to write research code.
+
+This notebook includes all high level tasks of the project.
+
++++ {"tags": ["nbd-docs"]}
 
 # Initialization
 
@@ -104,35 +108,51 @@ def _recreate_dir_symlink(link, targ, root):
     print(f'  symlink: "{link.relative_to(root)}" -> "{link_res.relative_to(root)}"')
 ```
 
++++ {"tags": ["nbd-docs"]}
+
 Run initialization in the notebook.
 
 ```{code-cell} ipython3
-:tags: []
+:tags: [nbd-docs]
 
+#| code-fold: false
 init()
 ```
+
++++ {"tags": ["nbd-docs"]}
 
 # Reproduction and testing
 
 ```{code-cell} ipython3
-:tags: []
+:tags: [nbd-docs]
 
+#| output: false
 from reseng import nbd
 nbd.test_all()
 ```
 
 ```{code-cell} ipython3
-:tags: []
+:tags: [nbd-docs]
 
+#| output: false
 from reseng import caching
 caching.test_all()
 ```
 
 ```{code-cell} ipython3
-:tags: []
+:tags: [nbd-docs]
 
+#| output: false
 from reseng import monitor
 monitor.test_all()
+```
+
+```{code-cell} ipython3
+:tags: [nbd-docs]
+
+#| output: false
+from reseng import util
+util.test_all()
 ```
 
 # Build this module

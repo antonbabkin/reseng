@@ -5,22 +5,35 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.11.5
+    jupytext_version: 1.14.0
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
   name: python3
 ---
 
-# Multiple kernels in Jupyter notebooks
+```{raw-cell}
+:tags: []
+
+---
+title: "Language kernels"
+format:
+  html: 
+    code-fold: false
+    ipynb-filters:
+      - reseng/nbd.py filter-docs
+---
+```
+
++++ {"tags": ["nbd-docs"]}
 
 This notebook shows how to use different kernels (Python, R and Stata) in Jupyter. Keep in mind that with this approach communication between kernels is not possible, and data can be only shared by writing it to disk in a format understood by all kernels.
 
 Starting with Stata 17, Stata code can be directly executed from Python, and dataframes, matrices and results can be passed between Python kernel and Stata environment. See [official documentation](https://www.stata.com/python/pystata/index.html) and our [example notebook](stata.ipynb).
 
-+++
++++ {"tags": ["nbd-docs"]}
 
-## Setup
+# Setup
 
 1. Install Stata.
 
@@ -57,46 +70,64 @@ mamba install nodejs
 jupyter labextension install jupyterlab-stata-highlight
 ```
 
-+++
++++ {"tags": ["nbd-docs"]}
 
-## Stata
+# Stata
 
 Activate Stata kernel. See a wide range of usage examples [here](https://nbviewer.jupyter.org/github/kylebarron/stata_kernel/blob/master/examples/Example.ipynb).
 
 ```{code-cell} ipython3
+:tags: [nbd-docs]
+
 sysuse auto
 ```
 
 ```{code-cell} ipython3
+:tags: [nbd-docs]
+
 describe
 ```
 
 ```{code-cell} ipython3
+:tags: [nbd-docs]
+
 reg price mpg rep78 i.foreign
 ```
 
 ```{code-cell} ipython3
+:tags: [nbd-docs]
+
 outsheet using ../tmp/auto.csv, comma
 ```
 
-## Python
++++ {"tags": ["nbd-docs"]}
+
+# Python
 
 Activate Python kernel.
 
 ```{code-cell} ipython3
+:tags: [nbd-docs]
+
 import pandas as pd
 ```
 
 ```{code-cell} ipython3
+:tags: [nbd-docs]
+
 df = pd.read_csv('../tmp/auto.csv')
 df.sample(3)
 ```
+
++++ {"tags": ["nbd-docs"]}
 
 # R
 
 Activate R kernel.
 
 ```{code-cell} ipython3
+:tags: [nbd-docs]
+
 library(ggplot2)
 
 ggplot(mpg, aes(displ, hwy, colour = class)) + 

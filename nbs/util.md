@@ -5,21 +5,33 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.11.5
+    jupytext_version: 1.14.0
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
   name: python3
 ---
 
-# Various utilities
+```{raw-cell}
+:tags: []
 
-```{code-cell} ipython3
-#default_exp util
+---
+title: "Misc utils"
+format:
+  html: 
+    code-fold: true
+    ipynb-filters:
+      - reseng/nbd.py filter-docs
+---
 ```
 
++++ {"tags": ["nbd-docs"]}
+
+This module includes various useful utilities.
+
 ```{code-cell} ipython3
-#export
+:tags: [nbd-module]
+
 from pathlib import Path
 from urllib.parse import urlparse, unquote
 
@@ -28,13 +40,21 @@ import numpy as np
 import pandas as pd
 ```
 
++++ {"tags": ["nbd-docs"]}
+
+# File download
+
+`download_file()` downloads a file and returns it's path.
+
 ```{code-cell} ipython3
-#export
+:tags: [nbd-module]
+
 def download_file(url, dir=None, fname=None, overwrite=False):
     """Download file from given `url` and put it into `dir`.
     Current working directory is used as default. Missing directories are created.
     File name from `url` is used as default.
-    Return absolute pathlib.Path of the downloaded file."""
+    Return absolute pathlib.Path of the downloaded file.
+    """
     
     if dir is None:
         dir = '.'
@@ -56,12 +76,32 @@ def download_file(url, dir=None, fname=None, overwrite=False):
     
     print(f'Downloaded file {fname}.')
     return fpath 
+
+def test_download_file():
+    from reseng.nbd import Nbd
+    nbd = Nbd('reseng')
+
+    cloned_file = nbd.root / 'LICENSE'
+    downloaded_file = download_file('https://raw.githubusercontent.com/antonbabkin/reseng/master/LICENSE', nbd.root, 'LICENSE_COPY')
+    assert cloned_file.open().read() == downloaded_file.open().read()
+    downloaded_file.unlink()
 ```
+
+```{code-cell} ipython3
+:tags: []
+
+test_download_file()
+```
+
++++ {"tags": ["nbd-docs"]}
 
 # Pandas extensions
 
+`tag_invalid_values()` takes a `pandas.Series` and contraints like `non-missing` or `> 5`, and reports which values do not satisfy the contraints.
+
 ```{code-cell} ipython3
-#export
+:tags: [nbd-module]
+
 def tag_invalid_values(ser, notna=False, unique=False, nchar=None, number=False, cats=None,
                  eq=None, gt=None, ge=None, lt=None, le=None):
     """Return array with indicators of invalid values in `ser`.
@@ -75,7 +115,7 @@ def tag_invalid_values(ser, notna=False, unique=False, nchar=None, number=False,
     `unique` will tag all duplicates as invalid.
     """
     # idea: print warning if unsupported values are present, e.g. str values with "ge" flag
-    valid = np.ones_like(ser, np.bool)
+    valid = np.ones_like(ser, bool)
     ser_isna = ser.isna()
     ser_notna = ~ser_isna
     
@@ -122,36 +162,45 @@ def validate_values(df, constraints):
             invalid_list.append({'col': col, 'row': i, 'idx': df.index[i], 'val': df[col].iloc[i]})
             
     return invalid_list
-```
 
-Tests
+def test_tag_invalid_values():
+    s = pd.Series(['alpha', 'beta', 'beta', '0123', np.nan], dtype='str')
+    assert (tag_invalid_values(s, notna=True) == [False, False, False, False, True]).all()
+    assert (tag_invalid_values(s, unique=True) == [False, True, True, False, False]).all()
+    assert (tag_invalid_values(s, nchar=4) == [True, False, False, False, False]).all()
+    assert (tag_invalid_values(s, number=True) == [True, True, True, False, False]).all()
+    assert (tag_invalid_values(s, cats=['alpha', 'beta']) == [False, False, False, True, False]).all()
+    assert (tag_invalid_values(s, eq='beta') == [True, False, False, True, False]).all()
 
-```{code-cell} ipython3
-s = pd.Series(['alpha', 'beta', 'beta', '0123', np.nan], dtype='str')
-assert (tag_invalid_values(s, notna=True) == [False, False, False, False, True]).all()
-assert (tag_invalid_values(s, unique=True) == [False, True, True, False, False]).all()
-assert (tag_invalid_values(s, nchar=4) == [True, False, False, False, False]).all()
-assert (tag_invalid_values(s, number=True) == [True, True, True, False, False]).all()
-assert (tag_invalid_values(s, cats=['alpha', 'beta']) == [False, False, False, True, False]).all()
-assert (tag_invalid_values(s, eq='beta') == [True, False, False, True, False]).all()
+    s = pd.Series([1, 7.5, -99999999, np.nan])
+    assert (tag_invalid_values(s, notna=True) == [False, False, False, True]).all()
+    assert (tag_invalid_values(s, unique=True) == [False, False, False, False]).all()
+    assert (tag_invalid_values(s, cats=[1, 7.5]) == [False, False, True, False]).all()
+    assert (tag_invalid_values(s, eq=1) == [False, True, True, False]).all()
+    assert (tag_invalid_values(s, ge=0) == [False, False, True, False]).all()
+    assert (tag_invalid_values(s, le=0) == [True, True, False, False]).all()
+    assert (tag_invalid_values(s, gt=1, lt=10) == [True, False, True, False]).all()
+    assert (tag_invalid_values(s, ge=1, lt=10) == [False, False, True, False]).all()
+    assert (tag_invalid_values(s, gt=10, lt=0) == [True, True, True, False]).all()
 
-s = pd.Series([1, 7.5, -99999999, np.nan])
-assert (tag_invalid_values(s, notna=True) == [False, False, False, True]).all()
-assert (tag_invalid_values(s, unique=True) == [False, False, False, False]).all()
-assert (tag_invalid_values(s, cats=[1, 7.5]) == [False, False, True, False]).all()
-assert (tag_invalid_values(s, eq=1) == [False, True, True, False]).all()
-assert (tag_invalid_values(s, ge=0) == [False, False, True, False]).all()
-assert (tag_invalid_values(s, le=0) == [True, True, False, False]).all()
-assert (tag_invalid_values(s, gt=1, lt=10) == [True, False, True, False]).all()
-assert (tag_invalid_values(s, ge=1, lt=10) == [False, False, True, False]).all()
-assert (tag_invalid_values(s, gt=10, lt=0) == [True, True, True, False]).all()
-
-s = pd.Series([np.nan, 15, '15', '-15', '.15', '1.5', '-.15', '-1.5', '1a', 'ab', ''])
-assert (tag_invalid_values(s, number=True) == 8 * [False] + 3 * [True]).all()
+    s = pd.Series([np.nan, 15, '15', '-15', '.15', '1.5', '-.15', '-1.5', '1a', 'ab', ''])
+    assert (tag_invalid_values(s, number=True) == 8 * [False] + 3 * [True]).all()
 ```
 
 ```{code-cell} ipython3
-#export
+:tags: []
+
+test_tag_invalid_values()
+```
+
++++ {"tags": ["nbd-docs"]}
+
+`group_exampler()` shows an example of dataframe observations with a randomly picked group id, where one or all observations satisfy a given condition.
+Convenient to use with panel data to view full history of a single entity.
+
+```{code-cell} ipython3
+:tags: [nbd-module]
+
 def group_exampler(group_col, sort_col=None):
     def example(df, query, all=False):
         if all:
@@ -170,10 +219,48 @@ def group_exampler(group_col, sort_col=None):
     return example
 ```
 
++++ {"tags": ["nbd-docs"]}
+
+Example with a randomly generated panel dataframe.
+
 ```{code-cell} ipython3
+:tags: [nbd-docs]
+
 df = pd.DataFrame([[i, t] for i in range(5) for t in range(3)], columns=['i', 't'])
 df['x'] = np.random.randint(-10, 11, len(df))
 pd.DataFrame.example = group_exampler(group_col='i', sort_col='t')
+print('Dataframe head:')
+display(df.head())
+print('Example where any x > 0:')
 display(df.example('x > 0'))
+print('Example where all x > 0:')
 display(df.example('x > 0', all=True))
+```
+
+# Tests
+
+```{code-cell} ipython3
+:tags: [nbd-module]
+
+def test_all():
+    test_download_file()
+    test_tag_invalid_values()
+```
+
+```{code-cell} ipython3
+:tags: []
+
+test_all()
+```
+
++++ {"tags": []}
+
+# Build this module
+
+```{code-cell} ipython3
+:tags: []
+
+from reseng.nbd import Nbd
+nbd = Nbd('reseng')
+nbd.nb2mod('util.ipynb')
 ```

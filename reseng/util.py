@@ -22,7 +22,7 @@ def download_file(url, dir=None, fname=None, overwrite=False):
     dpath.mkdir(parents=True, exist_ok=True)
 
     if fname is None:
-        fname = Path(urlparse(url).path).name
+        fname = unquote(Path(urlparse(url).path).name)
     fpath = dpath / fname
     
     if not overwrite and fpath.exists():
@@ -34,7 +34,7 @@ def download_file(url, dir=None, fname=None, overwrite=False):
         with open(fpath, 'wb') as f:
             f.write(r.content)
     
-    print(f'Downloaded file {fname}.')
+    print(f'Downloaded file "{fname}".')
     return fpath 
 
 def test_download_file():

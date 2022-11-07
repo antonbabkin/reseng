@@ -65,22 +65,11 @@ def init():
     """Initialize project file structure by recreating symlinks to package and all submodule packages.
     Safe to run multiple times.
     """
-    proj_name = 'reseng'
-    submods = []
-    
-    submod_list = ' and submodules ' + ', '.join(f'"{x}"' for x in submods) if submods else ''
-    print(f'Initializing project "{proj_name}"{submod_list}...')
-    
+    print('Initializing project "reseng"...')
     root_dir = _this_proj_root()
-    print(f'  Project "{proj_name}" root directory: "{root_dir}"')
-    
-    _recreate_dir_symlink(f'nbs/{proj_name}', f'../{proj_name}', root_dir)
-    importlib.import_module(proj_name) # test
-    for submod_name in submods:
-        _recreate_dir_symlink(f'{proj_name}/{submod_name}', f'../submodules/{submod_name}/{submod_name}', root_dir)
-        importlib.import_module(f'{proj_name}.{submod_name}') # test
-    
-    print(f'Initialization of "{proj_name}" finished.\n')
+    print(f'  Project "reseng" root directory: "{root_dir}"')
+    _recreate_dir_symlink('nbs/reseng', '../reseng', root_dir)
+    print('Initialization of "reseng" finished.\n')
 
 def _this_proj_root():
     """Return abs path to this project's root dir."""
@@ -122,6 +111,14 @@ init()
 +++ {"tags": ["nbd-docs"]}
 
 # Reproduction and testing
+
+```{code-cell} ipython3
+:tags: []
+
+#| output: false
+from reseng import index
+index.init()
+```
 
 ```{code-cell} ipython3
 :tags: [nbd-docs]

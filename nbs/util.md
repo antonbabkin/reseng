@@ -32,8 +32,11 @@ This module includes various useful utilities.
 ```{code-cell} ipython3
 :tags: [nbd-module]
 
+import shutil
+import urllib
 from pathlib import Path
 from urllib.parse import urlparse, unquote
+import tempfile
 
 import requests
 import numpy as np
@@ -54,6 +57,7 @@ def download_file(url, dir=None, fname=None, overwrite=False):
     Current working directory is used as default. Missing directories are created.
     File name from `url` is used as default.
     Return absolute pathlib.Path of the downloaded file.
+    Supports HTTP and FTP protocols.
     """
     
     if dir is None:
@@ -69,22 +73,33 @@ def download_file(url, dir=None, fname=None, overwrite=False):
         print(f'File {fname} already exists.')
         return fpath
 
-    with requests.get(url) as r:
-        r.raise_for_status()
-        with open(fpath, 'wb') as f:
-            f.write(r.content)
+    if urlparse(url).scheme == 'ftp':
+        with urllib.request.urlopen(url) as r:
+            with open(fpath, 'wb') as f:
+                shutil.copyfileobj(r, f)
+    else:
+        with requests.get(url) as r:
+            r.raise_for_status()
+            with open(fpath, 'wb') as f:
+                f.write(r.content)
     
     print(f'Downloaded file "{fname}".')
     return fpath 
 
-def test_download_file():
-    from reseng.nbd import Nbd
-    nbd = Nbd('reseng')
 
-    cloned_file = nbd.root / 'LICENSE'
-    downloaded_file = download_file('https://raw.githubusercontent.com/antonbabkin/reseng/master/LICENSE', nbd.root, 'LICENSE_COPY')
-    assert cloned_file.open().read() == downloaded_file.open().read()
-    downloaded_file.unlink()
+def test_download_file():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        print('Testing FTP download')
+        f = download_file('ftp://ftp.nass.usda.gov/quickstats/qs.sample.txt', temp_dir)
+        assert len(f.open().read()) == 22891    
+    
+        print('Testing HTTP download')
+        from reseng.nbd import Nbd
+        nbd = Nbd('reseng')
+        cloned_file = nbd.root / 'LICENSE'
+        
+        downloaded_file = download_file('https://raw.githubusercontent.com/antonbabkin/reseng/master/LICENSE', temp_dir)
+        assert cloned_file.open().read() == downloaded_file.open().read()
 ```
 
 ```{code-cell} ipython3

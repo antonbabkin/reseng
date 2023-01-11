@@ -5,7 +5,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.14.0
+    jupytext_version: 1.14.4
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -36,6 +36,7 @@ import shutil
 import urllib
 from pathlib import Path
 from urllib.parse import urlparse, unquote
+from datetime import datetime
 import tempfile
 
 import requests
@@ -52,7 +53,7 @@ import pandas as pd
 ```{code-cell} ipython3
 :tags: [nbd-module]
 
-def download_file(url, dir=None, fname=None, overwrite=False):
+def download_file(url, dir=None, fname=None, overwrite=False, save_info=True):
     """Download file from given `url` and put it into `dir`.
     Current working directory is used as default. Missing directories are created.
     File name from `url` is used as default.
@@ -73,6 +74,8 @@ def download_file(url, dir=None, fname=None, overwrite=False):
         print(f'File {fname} already exists.')
         return fpath
 
+    access_time = datetime.utcnow().isoformat(' ', timespec='seconds')
+    
     if urlparse(url).scheme == 'ftp':
         with urllib.request.urlopen(url) as r:
             with open(fpath, 'wb') as f:
@@ -82,6 +85,15 @@ def download_file(url, dir=None, fname=None, overwrite=False):
             r.raise_for_status()
             with open(fpath, 'wb') as f:
                 f.write(r.content)
+                
+    if save_info:
+        finfo = dpath / (fname + '_info.txt')
+        with open(finfo, 'w') as f:
+            f.write(f'File path: {fpath}\n')
+            fsz = fpath.stat().st_size
+            f.write(f'File size (bytes): {fsz:,d}\n')
+            f.write(f'Download URL: {url}\n')
+            f.write(f'Access time: {access_time} UTC\n')
     
     print(f'Downloaded file "{fname}".')
     return fpath 
